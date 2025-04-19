@@ -5,7 +5,7 @@ import tempfile
 import git
 import time
 import fnmatch
-from typing import Union, Set, List, Dict, Tuple, Any
+from typing import Union, Set, List, Dict, Tuple, Any, Optional
 from urllib.parse import urlparse
 
 def crawl_github_files(
@@ -13,8 +13,8 @@ def crawl_github_files(
     token=None, 
     max_file_size: int = 1 * 1024 * 1024,  # 1 MB
     use_relative_paths: bool = False,
-    include_patterns: Union[str, Set[str]] = None,
-    exclude_patterns: Union[str, Set[str]] = None
+    include_patterns: 'Optional[Union[str, Set[str]]]' = None,
+    exclude_patterns: 'Optional[Union[str, Set[str]]]' = None
 ):
     """
     Crawl files from a specific path in a GitHub repository at a specific commit.
@@ -42,8 +42,8 @@ def crawl_github_files(
     if exclude_patterns and isinstance(exclude_patterns, str):
         exclude_patterns = {exclude_patterns}
 
-    def should_include_file(file_path: str, file_name: str) -> bool:
-        """Determine if a file should be included based on patterns"""
+    def should_include_file_ssh(file_path: str, file_name: str) -> bool:
+        """Determine if a file should be included based on patterns (SSH clone)"""
         # If no include patterns are specified, include all files
         if not include_patterns:
             include_file = True
@@ -98,7 +98,7 @@ def crawl_github_files(
                         continue
 
                     # Check include/exclude patterns
-                    if not should_include_file(rel_path, filename):
+                    if not should_include_file_ssh(rel_path, filename):
                         print(f"Skipping {rel_path}: does not match include/exclude patterns")
                         continue
 
