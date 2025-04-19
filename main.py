@@ -8,15 +8,29 @@ dotenv.load_dotenv()
 
 # Default file patterns
 DEFAULT_INCLUDE_PATTERNS = {
-    "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.go", "*.java", "*.pyi", "*.pyx",
-    "*.c", "*.cc", "*.cpp", "*.h", "*.md", "*.rst", "Dockerfile",
-    "Makefile", "*.yaml", "*.yml",
+    # Common web/scripting
+    "*.py", "*.js", "*.jsx", "*.ts", "*.tsx",
+    # Compiled/Systems
+    "*.go", "*.java", "*.c", "*.cc", "*.cpp", "*.h", "*.zig",
+    # Shaders/Markup/Config
+     "*.wgsl", "*.glsl", "*.md", "*.rst", "*.yaml", "*.yml", "*.toml", "*.json", "*.zon",
+    # Build/Infra
+    "Dockerfile", "Makefile", "*.pyi", "*.pyx",
 }
 
 DEFAULT_EXCLUDE_PATTERNS = {
-    "*test*", "tests/*", "docs/*", "examples/*", "v1/*",
-    "dist/*", "build/*", "experimental/*", "deprecated/*",
-    "legacy/*", ".git/*", ".github/*", ".next/*", ".vscode/*", "obj/*", "bin/*", "node_modules/*", "*.log"
+    # Common test/example/build patterns
+    "*test*", "tests/*", "test/*", "*_test.go", # Added go test pattern
+    "docs/*", "doc/*", "examples/*", "example/*",
+    "dist/*", "build/*", "target/*", # Added Rust target dir
+    "experimental/*", "deprecated/*", "legacy/*",
+    # Common metadata/tooling dirs
+    ".git/*", ".github/*", ".vscode/*", ".idea/*",
+    "obj/*", "bin/*", "node_modules/*", "vendor/*",
+    # Log files
+    "*.log"
+    # Add specific nested patterns if needed often, e.g.:
+    # "src/tests/*"
 }
 
 # --- Main Function ---

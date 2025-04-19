@@ -78,6 +78,9 @@ class IdentifyAbstractions(Node):
         project_name = shared["project_name"]  # Get project name
         language = shared.get("language", "english") # Get language
 
+        if not files_data or len(files_data) == 0:
+            raise ValueError("No files were found in the specified directory or repository. Please check your include/exclude patterns and try again.")
+
         # Helper to create context from files, respecting limits (basic example)
         def create_llm_context(files_data):
             context = ""
@@ -146,13 +149,51 @@ Format the output as a YAML list of dictionaries:
 ```"""
         response = call_llm(prompt)
 
-        # --- Validation ---
-        yaml_str = response.strip().split("```yaml")[1].split("```")[0].strip()
-        abstractions = yaml.safe_load(yaml_str)
+        # --- Robust YAML Parsing ---
+        yaml_start_tag = "```yaml"
+        yaml_end_tag = "```"
+
+        response_stripped = response.strip()
+        start_index = response_stripped.find(yaml_start_tag)
+
+        if start_index == -1:
+            # If the start tag is not found, the format is completely wrong
+            print("Warning: LLM response for IdentifyAbstractions did not contain the expected '```yaml' block.")
+            print(f"Full response: \n---\n{response}\n---")
+            raise ValueError("LLM response for IdentifyAbstractions did not contain the expected YAML code block starting with ```yaml") # Raising is safer to indicate a parse failure
+
+        # Find the end tag *after* the start tag
+        yaml_content_start = start_index + len(yaml_start_tag)
+        end_index = response_stripped.find(yaml_end_tag, yaml_content_start)
+
+        if end_index == -1:
+            # If the end tag is not found after the start tag, take the rest of the string
+            print("Warning: LLM response for IdentifyAbstractions contained '```yaml' but no closing '```'. Taking content until the end.")
+            yaml_str = response_stripped[yaml_content_start:].strip()
+        else:
+            # Extract the content between the tags
+            yaml_str = response_stripped[yaml_content_start:end_index].strip()
+
+        if not yaml_str:
+             print("Warning: Extracted YAML string for IdentifyAbstractions is empty.")
+             print(f"Full response: \n---\n{response}\n---")
+             raise ValueError("LLM response for IdentifyAbstractions contained empty YAML block.")
+
+
+        # --- Load and Validate Structure --- <-- New validation start
+        try:
+            abstractions = yaml.safe_load(yaml_str)
+        except yaml.YAMLError as e:
+             print(f"Error parsing YAML from LLM response in IdentifyAbstractions: {e}")
+             print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+             raise ValueError(f"Failed to parse YAML from LLM response in IdentifyAbstractions: {e}") from e
 
         if not isinstance(abstractions, list):
-            raise ValueError("LLM Output is not a list")
+            print(f"Warning: LLM Output for IdentifyAbstractions is not a list, it's {type(abstractions).__name__}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError("LLM Output for IdentifyAbstractions is not a list as expected.")
 
+        # --- Continue with existing item-level validation --- <-- The original loop starts here
         validated_abstractions = []
         for item in abstractions:
             if not isinstance(item, dict) or not all(k in item for k in ["name", "description", "file_indices"]):
@@ -230,6 +271,7 @@ class AnalyzeRelationships(Node):
 
         return context, "\n".join(abstraction_info_for_prompt), project_name, language # Return language
 
+          
     def exec(self, prep_res):
         context, abstraction_listing, project_name, language = prep_res  # Unpack project name and language
         print(f"Analyzing relationships using LLM...")
@@ -239,9 +281,10 @@ class AnalyzeRelationships(Node):
         lang_hint = ""
         list_lang_note = ""
         if language.lower() != "english":
-            language_instruction = f"IMPORTANT: Generate the `summary` and relationship `label` fields in **{language.capitalize()}** language. Do NOT use English for these fields.\n\n"
-            lang_hint = f" (in {language.capitalize()})"
-            list_lang_note = f" (Names might be in {language.capitalize()})" # Note for the input list
+            lang_cap = language.capitalize()
+            language_instruction = f"IMPORTANT: Generate the `summary` and relationship `label` fields in **{lang_cap}** language. Do NOT use English for these fields.\n\n"
+            lang_hint = f" (in {lang_cap})"
+            list_lang_note = f" (Names might be in {lang_cap})" # Note for the input list
 
         prompt = f"""
 Based on the following abstractions and relevant code snippets from the project `{project_name}`:
@@ -282,41 +325,81 @@ relationships:
 Now, provide the YAML output:
 """
         response = call_llm(prompt)
+        print("LLM response received. Parsing...")
 
-        # --- Validation ---
-        yaml_str = response.strip().split("```yaml")[1].split("```")[0].strip()
-        relationships_data = yaml.safe_load(yaml_str)
+        # --- Robust YAML Parsing ---
+        yaml_start_tag = "```yaml"
+        yaml_end_tag = "```"
+
+        response_stripped = response.strip()
+        start_index = response_stripped.find(yaml_start_tag)
+
+        if start_index == -1:
+            print("Warning: LLM response for AnalyzeRelationships did not contain the expected '```yaml' block.")
+            print(f"Full response: \n---\n{response}\n---")
+            raise ValueError("LLM response for AnalyzeRelationships did not contain the expected YAML code block starting with ```yaml")
+
+        yaml_content_start = start_index + len(yaml_start_tag)
+        end_index = response_stripped.find(yaml_end_tag, yaml_content_start)
+
+        if end_index == -1:
+            print("Warning: LLM response for AnalyzeRelationships contained '```yaml' but no closing '```'. Taking content until the end.")
+            yaml_str = response_stripped[yaml_content_start:].strip()
+        else:
+            yaml_str = response_stripped[yaml_content_start:end_index].strip()
+
+        if not yaml_str:
+            print("Warning: Extracted YAML string for AnalyzeRelationships is empty.")
+            print(f"Full response: \n---\n{response}\n---")
+            raise ValueError("LLM response for AnalyzeRelationships contained empty YAML block.")
+
+
+        # --- Load and Validate Structure ---
+        try:
+            relationships_data = yaml.safe_load(yaml_str)
+        except yaml.YAMLError as e:
+            print(f"Error parsing YAML from LLM response in AnalyzeRelationships: {e}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError(f"Failed to parse YAML from LLM response in AnalyzeRelationships: {e}") from e
 
         if not isinstance(relationships_data, dict) or not all(k in relationships_data for k in ["summary", "relationships"]):
-            raise ValueError("LLM output is not a dict or missing keys ('summary', 'relationships')")
+            print(f"Warning: LLM Output for AnalyzeRelationships is not a dict or missing keys ('summary', 'relationships').")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError("LLM output for AnalyzeRelationships is not a dict or missing keys ('summary', 'relationships') as expected.")
+
         if not isinstance(relationships_data["summary"], str):
-             raise ValueError("summary is not a string")
+            print(f"Warning: 'summary' field in AnalyzeRelationships output is not a string. Type: {type(relationships_data['summary']).__name__}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError("summary is not a string as expected.")
+
         if not isinstance(relationships_data["relationships"], list):
-             raise ValueError("relationships is not a list")
+            print(f"Warning: 'relationships' field in AnalyzeRelationships output is not a list. Type: {type(relationships_data['relationships']).__name__}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError("relationships is not a list as expected.")
 
         # Validate relationships structure
         validated_relationships = []
         num_abstractions = len(abstraction_listing.split('\n'))
         for rel in relationships_data["relationships"]:
-             # Check for 'label' key
-             if not isinstance(rel, dict) or not all(k in rel for k in ["from_abstraction", "to_abstraction", "label"]):
-                  raise ValueError(f"Missing keys (expected from_abstraction, to_abstraction, label) in relationship item: {rel}")
+            # Check for 'label' key
+            if not isinstance(rel, dict) or not all(k in rel for k in ["from_abstraction", "to_abstraction", "label"]):
+                raise ValueError(f"Missing keys (expected from_abstraction, to_abstraction, label) in relationship item: {rel}")
              # Validate 'label' is a string
-             if not isinstance(rel["label"], str):
-                  raise ValueError(f"Relationship label is not a string: {rel}")
+            if not isinstance(rel["label"], str):
+                raise ValueError(f"Relationship label is not a string: {rel}")
 
              # Validate indices
-             try:
-                 from_idx = int(str(rel["from_abstraction"]).split('#')[0].strip())
-                 to_idx = int(str(rel["to_abstraction"]).split('#')[0].strip())
-                 if not (0 <= from_idx < num_abstractions and 0 <= to_idx < num_abstractions):
-                      raise ValueError(f"Invalid index in relationship: from={from_idx}, to={to_idx}. Max index is {num_abstractions-1}.")
-                 validated_relationships.append({
-                     "from": from_idx,
-                     "to": to_idx,
-                     "label": rel["label"] # Potentially translated label
-                 })
-             except (ValueError, TypeError):
+            try:
+                from_idx = int(str(rel["from_abstraction"]).split('#')[0].strip())
+                to_idx = int(str(rel["to_abstraction"]).split('#')[0].strip())
+                if not (0 <= from_idx < num_abstractions and 0 <= to_idx < num_abstractions):
+                    raise ValueError(f"Invalid index in relationship: from={from_idx}, to={to_idx}. Max index is {num_abstractions-1}.")
+                validated_relationships.append({
+                    "from": from_idx,
+                    "to": to_idx,
+                    "label": rel["label"] # Potentially translated label
+                })
+            except (ValueError, TypeError):
                   raise ValueError(f"Could not parse indices from relationship: {rel}")
 
         print("Generated project summary and relationship details.")
@@ -392,13 +475,46 @@ Output the ordered list of abstraction indices, including the name in a comment 
 Now, provide the YAML output:
 """
         response = call_llm(prompt)
+        print("LLM response received. Parsing...")
 
-        # --- Validation ---
-        yaml_str = response.strip().split("```yaml")[1].split("```")[0].strip()
-        ordered_indices_raw = yaml.safe_load(yaml_str)
+        # --- Robust YAML Parsing ---
+        yaml_start_tag = "```yaml"
+        yaml_end_tag = "```"
+
+        response_stripped = response.strip()
+        start_index = response_stripped.find(yaml_start_tag)
+
+        if start_index == -1:
+            print("Warning: LLM response for OrderChapters did not contain the expected '```yaml' block.")
+            print(f"Full response: \n---\n{response}\n---")
+            raise ValueError("LLM response for OrderChapters did not contain the expected YAML code block starting with ```yaml")
+
+        yaml_content_start = start_index + len(yaml_start_tag)
+        end_index = response_stripped.find(yaml_end_tag, yaml_content_start)
+
+        if end_index == -1:
+            print("Warning: LLM response for OrderChapters contained '```yaml' but no closing '```'. Taking content until the end.")
+            yaml_str = response_stripped[yaml_content_start:].strip()
+        else:
+            yaml_str = response_stripped[yaml_content_start:end_index].strip()
+
+        if not yaml_str:
+            print("Warning: Extracted YAML string for OrderChapters is empty.")
+            print(f"Full response: \n---\n{response}\n---")
+            raise ValueError("LLM response for OrderChapters contained empty YAML block.")
+
+        # --- Load and Validate Structure --- 
+        try:
+            ordered_indices_raw = yaml.safe_load(yaml_str)
+        except yaml.YAMLError as e:
+            print(f"Error parsing YAML from LLM response in OrderChapters: {e}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError(f"Failed to parse YAML from LLM response in OrderChapters: {e}") from e
 
         if not isinstance(ordered_indices_raw, list):
-            raise ValueError("LLM output is not a list")
+            print(f"Warning: LLM output for OrderChapters is not a list, it's {type(ordered_indices_raw).__name__}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError("LLM output for OrderChapters is not a list as expected.")
 
         ordered_indices = []
         seen_indices = set()
