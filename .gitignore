@@ -101,4 +101,4 @@ llm_cache.json
 # Output files
 output/
 
-assets/.notes.txt
+utils/.notes.txt
