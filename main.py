@@ -13,7 +13,7 @@ DEFAULT_INCLUDE_PATTERNS = {
     # Compiled/Systems
     "*.go", "*.java", "*.c", "*.cc", "*.cpp", "*.h", "*.zig",
     # Shaders/Markup/Config
-     "*.wgsl", "*.glsl", "*.md", "*.rst", "*.yaml", "*.yml", "*.toml", "*.json", "*.zon",
+    "*.wgsl", "*.glsl", "*.md", "*.rst", "*.yaml", "*.yml", "*.toml", "*.json", "*.zon",
     # Build/Infra
     "Dockerfile", "Makefile", "*.pyi", "*.pyx",
 }

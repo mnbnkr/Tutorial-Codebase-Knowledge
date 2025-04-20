@@ -36,7 +36,7 @@ def call_llm(prompt: str, use_cache: bool = True) -> str:
         cache = {}
         if os.path.exists(cache_file):
             try:
-                # --- FIX: Specify UTF-8 encoding for reading cache ---
+                # --- Specify UTF-8 encoding for reading cache ---
                 with open(cache_file, 'r', encoding='utf-8') as f:
                     cache = json.load(f)
             except Exception as cache_load_err: # Catch broader exceptions during load
@@ -103,16 +103,16 @@ def call_llm(prompt: str, use_cache: bool = True) -> str:
         # Add to cache and save
         cache[prompt] = response_text
         try:
-            # --- FIX: Specify UTF-8 encoding for writing cache ---
+            # --- Specify UTF-8 encoding for writing cache ---
             with open(cache_file, 'w', encoding='utf-8') as f:
                 # Use ensure_ascii=False to allow non-ASCII chars directly in JSON
-                json.dump(cache, f, ensure_ascii=False, indent=4) # Added indent for readability
+                json.dump(cache, f, ensure_ascii=False, indent=4)
         except Exception as e:
             logger.error(f"Failed to save cache: {e}")
 
     return response_text
 
-# Use Anthropic Claude 3.7 Sonnet Extended Thinking
+# # Use Anthropic Claude 3.7 Sonnet Extended Thinking
 # def call_llm(prompt, use_cache: bool = True):
 #     from anthropic import Anthropic
 #     client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", "your-api-key"))
@@ -129,7 +129,7 @@ def call_llm(prompt: str, use_cache: bool = True) -> str:
 #     )
 #     return response.content[1].text
 
-# Use OpenAI o4-mini
+# # Use OpenAI o4-mini
 # def call_llm(prompt, use_cache: bool = True):
 #     # Log the prompt (Optional: keep logging if desired)
 #     logger.info(f"PROMPT: {prompt}")
@@ -194,7 +194,7 @@ def call_llm(prompt: str, use_cache: bool = True) -> str:
 #         return f"Error: {e}" # Return error message
 
 if __name__ == "__main__":
-    test_prompt = "Hello, how are you? 你好吗？😊" # Added non-ASCII chars for testing
+    test_prompt = "Hello, how are you? 你好吗？😊" # For non-ASCII testing
 
     # First call - should hit the API (unless cached from previous runs)
     print("Making call...")

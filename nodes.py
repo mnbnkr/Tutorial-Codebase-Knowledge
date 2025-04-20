@@ -66,6 +66,8 @@ class FetchRepo(Node):
 
         # Convert dict to list of tuples: [(path, content), ...]
         files_list = list(result.get("files", {}).items())
+        if len(files_list) == 0:
+            raise(ValueError("Failed to fetch files"))
         print(f"Fetched {len(files_list)} files.")
         return files_list
 
@@ -175,52 +177,51 @@ Format the output as a YAML list of dictionaries:
             yaml_str = response_stripped[yaml_content_start:end_index].strip()
 
         if not yaml_str:
-             print("Warning: Extracted YAML string for IdentifyAbstractions is empty.")
-             print(f"Full response: \n---\n{response}\n---")
-             raise ValueError("LLM response for IdentifyAbstractions contained empty YAML block.")
+            print("Warning: Extracted YAML string for IdentifyAbstractions is empty.")
+            print(f"Full response: \n---\n{response}\n---")
+            raise ValueError("LLM response for IdentifyAbstractions contained empty YAML block.")
 
 
-        # --- Load and Validate Structure --- <-- New validation start
+        # --- Load and Validate Structure ---
         try:
             abstractions = yaml.safe_load(yaml_str)
         except yaml.YAMLError as e:
-             print(f"Error parsing YAML from LLM response in IdentifyAbstractions: {e}")
-             print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
-             raise ValueError(f"Failed to parse YAML from LLM response in IdentifyAbstractions: {e}") from e
+            print(f"Error parsing YAML from LLM response in IdentifyAbstractions: {e}")
+            print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
+            raise ValueError(f"Failed to parse YAML from LLM response in IdentifyAbstractions: {e}") from e
 
         if not isinstance(abstractions, list):
             print(f"Warning: LLM Output for IdentifyAbstractions is not a list, it's {type(abstractions).__name__}")
             print(f"Problematic YAML string: \n---\n{yaml_str}\n---")
             raise ValueError("LLM Output for IdentifyAbstractions is not a list as expected.")
 
-        # --- Continue with existing item-level validation --- <-- The original loop starts here
         validated_abstractions = []
         for item in abstractions:
             if not isinstance(item, dict) or not all(k in item for k in ["name", "description", "file_indices"]):
                 raise ValueError(f"Missing keys in abstraction item: {item}")
             if not isinstance(item["name"], str):
-                 raise ValueError(f"Name is not a string in item: {item}")
+                raise ValueError(f"Name is not a string in item: {item}")
             if not isinstance(item["description"], str):
-                 raise ValueError(f"Description is not a string in item: {item}")
+                raise ValueError(f"Description is not a string in item: {item}")
             if not isinstance(item["file_indices"], list):
-                 raise ValueError(f"file_indices is not a list in item: {item}")
+                raise ValueError(f"file_indices is not a list in item: {item}")
 
             # Validate indices
             validated_indices = []
             for idx_entry in item["file_indices"]:
-                 try:
-                     if isinstance(idx_entry, int):
-                         idx = idx_entry
-                     elif isinstance(idx_entry, str) and '#' in idx_entry:
-                          idx = int(idx_entry.split('#')[0].strip())
-                     else:
-                          idx = int(str(idx_entry).strip())
+                try:
+                    if isinstance(idx_entry, int):
+                        idx = idx_entry
+                    elif isinstance(idx_entry, str) and '#' in idx_entry:
+                        idx = int(idx_entry.split('#')[0].strip())
+                    else:
+                        idx = int(str(idx_entry).strip())
 
-                     if not (0 <= idx < file_count):
-                         raise ValueError(f"Invalid file index {idx} found in item {item['name']}. Max index is {file_count - 1}.")
-                     validated_indices.append(idx)
-                 except (ValueError, TypeError):
-                      raise ValueError(f"Could not parse index from entry: {idx_entry} in item {item['name']}")
+                    if not (0 <= idx < file_count):
+                        raise ValueError(f"Invalid file index {idx} found in item {item['name']}. Max index is {file_count - 1}.")
+                    validated_indices.append(idx)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Could not parse index from entry: {idx_entry} in item {item['name']}")
 
             item["files"] = sorted(list(set(validated_indices)))
             # Store only the required fields
@@ -271,7 +272,6 @@ class AnalyzeRelationships(Node):
 
         return context, "\n".join(abstraction_info_for_prompt), project_name, language # Return language
 
-          
     def exec(self, prep_res):
         context, abstraction_listing, project_name, language = prep_res  # Unpack project name and language
         print(f"Analyzing relationships using LLM...")
@@ -384,11 +384,11 @@ Now, provide the YAML output:
             # Check for 'label' key
             if not isinstance(rel, dict) or not all(k in rel for k in ["from_abstraction", "to_abstraction", "label"]):
                 raise ValueError(f"Missing keys (expected from_abstraction, to_abstraction, label) in relationship item: {rel}")
-             # Validate 'label' is a string
+            # Validate 'label' is a string
             if not isinstance(rel["label"], str):
                 raise ValueError(f"Relationship label is not a string: {rel}")
 
-             # Validate indices
+            # Validate indices
             try:
                 from_idx = int(str(rel["from_abstraction"]).split('#')[0].strip())
                 to_idx = int(str(rel["to_abstraction"]).split('#')[0].strip())
@@ -400,7 +400,7 @@ Now, provide the YAML output:
                     "label": rel["label"] # Potentially translated label
                 })
             except (ValueError, TypeError):
-                  raise ValueError(f"Could not parse indices from relationship: {rel}")
+                raise ValueError(f"Could not parse indices from relationship: {rel}")
 
         print("Generated project summary and relationship details.")
         return {
@@ -430,19 +430,19 @@ class OrderChapters(Node):
         # Use potentially translated summary and labels
         summary_note = ""
         if language.lower() != "english":
-             summary_note = f" (Note: Project Summary might be in {language.capitalize()})"
+            summary_note = f" (Note: Project Summary might be in {language.capitalize()})"
 
         context = f"Project Summary{summary_note}:\n{relationships['summary']}\n\n"
         context += "Relationships (Indices refer to abstractions above):\n"
         for rel in relationships['details']:
-             from_name = abstractions[rel['from']]['name']
-             to_name = abstractions[rel['to']]['name']
-             # Use potentially translated 'label'
-             context += f"- From {rel['from']} ({from_name}) to {rel['to']} ({to_name}): {rel['label']}\n" # Label might be translated
+            from_name = abstractions[rel['from']]['name']
+            to_name = abstractions[rel['to']]['name']
+            # Use potentially translated 'label'
+            context += f"- From {rel['from']} ({from_name}) to {rel['to']} ({to_name}): {rel['label']}\n" # Label might be translated
 
         list_lang_note = ""
         if language.lower() != "english":
-             list_lang_note = f" (Names might be in {language.capitalize()})"
+            list_lang_note = f" (Names might be in {language.capitalize()})"
 
         return abstraction_listing, context, len(abstractions), project_name, list_lang_note
 
@@ -520,26 +520,26 @@ Now, provide the YAML output:
         seen_indices = set()
         for entry in ordered_indices_raw:
             try:
-                 if isinstance(entry, int):
-                     idx = entry
-                 elif isinstance(entry, str) and '#' in entry:
-                      idx = int(entry.split('#')[0].strip())
-                 else:
-                      idx = int(str(entry).strip())
+                if isinstance(entry, int):
+                    idx = entry
+                elif isinstance(entry, str) and '#' in entry:
+                    idx = int(entry.split('#')[0].strip())
+                else:
+                    idx = int(str(entry).strip())
 
-                 if not (0 <= idx < num_abstractions):
-                      raise ValueError(f"Invalid index {idx} in ordered list. Max index is {num_abstractions-1}.")
-                 if idx in seen_indices:
-                     raise ValueError(f"Duplicate index {idx} found in ordered list.")
-                 ordered_indices.append(idx)
-                 seen_indices.add(idx)
+                if not (0 <= idx < num_abstractions):
+                    raise ValueError(f"Invalid index {idx} in ordered list. Max index is {num_abstractions-1}.")
+                if idx in seen_indices:
+                    raise ValueError(f"Duplicate index {idx} found in ordered list.")
+                ordered_indices.append(idx)
+                seen_indices.add(idx)
 
             except (ValueError, TypeError):
-                 raise ValueError(f"Could not parse index from ordered list entry: {entry}")
+                raise ValueError(f"Could not parse index from ordered list entry: {entry}")
 
         # Check if all abstractions are included
         if len(ordered_indices) != num_abstractions:
-             raise ValueError(f"Ordered list length ({len(ordered_indices)}) does not match number of abstractions ({num_abstractions}). Missing indices: {set(range(num_abstractions)) - seen_indices}")
+            raise ValueError(f"Ordered list length ({len(ordered_indices)}) does not match number of abstractions ({num_abstractions}). Missing indices: {set(range(num_abstractions)) - seen_indices}")
 
         print(f"Determined chapter order (indices): {ordered_indices}")
         return ordered_indices # Return the list of indices
@@ -712,13 +712,13 @@ Now, directly provide a super beginner-friendly Markdown output (DON'T need ```m
         # Basic validation/cleanup
         actual_heading = f"# Chapter {chapter_num}: {abstraction_name}" # Use potentially translated name
         if not chapter_content.strip().startswith(f"# Chapter {chapter_num}"):
-             # Add heading if missing or incorrect, trying to preserve content
-             lines = chapter_content.strip().split('\n')
-             if lines and lines[0].strip().startswith("#"): # If there's some heading, replace it
-                 lines[0] = actual_heading
-                 chapter_content = "\n".join(lines)
-             else: # Otherwise, prepend it
-                 chapter_content = f"{actual_heading}\n\n{chapter_content}"
+            # Add heading if missing or incorrect, trying to preserve content
+            lines = chapter_content.strip().split('\n')
+            if lines and lines[0].strip().startswith("#"): # If there's some heading, replace it
+                lines[0] = actual_heading
+                chapter_content = "\n".join(lines)
+            else: # Otherwise, prepend it
+                chapter_content = f"{actual_heading}\n\n{chapter_content}"
 
         # Add the generated content to our temporary list for the next iteration's context
         self.chapters_written_so_far.append(chapter_content)
@@ -804,7 +804,7 @@ class CombineTutorial(Node):
                 # Store filename and corresponding content
                 chapter_files.append({"filename": filename, "content": chapter_content})
             else:
-                 print(f"Warning: Mismatch between chapter order, abstractions, or content at index {i} (abstraction index {abstraction_index}). Skipping file generation for this entry.")
+                print(f"Warning: Mismatch between chapter order, abstractions, or content at index {i} (abstraction index {abstraction_index}). Skipping file generation for this entry.")
 
         # Add attribution to index content (using English fixed string)
         index_content += f"\n\n---\n\nGenerated by [AI Codebase Knowledge Builder](https://github.com/The-Pocket/Tutorial-Codebase-Knowledge)"
