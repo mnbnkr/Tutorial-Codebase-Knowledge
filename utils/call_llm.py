@@ -65,7 +65,7 @@ def call_llm(prompt: str, use_cache: bool = True) -> str:
 
             api_key=os.getenv("GEMINI_API_KEY", "your-api-key"),
         )
-        
+
         model = os.getenv("GEMINI_MODEL", "models/gemini-2.5-pro-preview-03-25")
         response = client.models.generate_content(
             model=model,
