@@ -20,7 +20,7 @@ DEFAULT_INCLUDE_PATTERNS = {
 
 DEFAULT_EXCLUDE_PATTERNS = {
     # Common test/example/build patterns
-    "*test*", "tests/*", "test/*", "*_test.go", # Added go test pattern
+    "venv/*", ".venv/*", "*test*", "tests/*", "test/*", "*_test.go", # Added go test pattern
     "docs/*", "doc/*", "examples/*", "example/*",
     "dist/*", "build/*", "target/*", # Added Rust target dir
     "experimental/*", "deprecated/*", "legacy/*",
