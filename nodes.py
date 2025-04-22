@@ -120,7 +120,7 @@ Codebase Context:
 {context}
 
 {language_instruction}Analyze the codebase context (and read "IMPORTANT TO KNOW BEFORE CONTEXTUALIZING.txt").
-Identify the top 6-12 core most important abstractions to help those new to the codebase.
+Identify the top 8-14 core most important abstractions to help those new to the codebase.
 
 For each abstraction, provide:
 1. A concise `name`{name_lang_hint}.
@@ -147,7 +147,7 @@ Format the output as a YAML list of dictionaries:
     Another core concept, similar to a blueprint for objects.{desc_lang_hint}
   file_indices:
     - 5 # path/to/another.js
-# ... up to 12 abstractions
+# ... up to 14 abstractions
 ```"""
         response = call_llm(prompt)
 
@@ -503,7 +503,7 @@ Now, provide the YAML output:
             print(f"Full response: \n---\n{response}\n---")
             raise ValueError("LLM response for OrderChapters contained empty YAML block.")
 
-        # --- Load and Validate Structure --- 
+        # --- Load and Validate Structure ---
         try:
             ordered_indices_raw = yaml.safe_load(yaml_str)
         except yaml.YAMLError as e:

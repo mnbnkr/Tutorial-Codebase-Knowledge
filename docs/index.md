@@ -10,7 +10,7 @@ Ever stared at a new codebase written by others feeling completely lost? This pr
 
 <p align="center">
   <a href="https://github.com/The-Pocket/PocketFlow" target="_blank">
-    <img 
+    <img
       src="https://raw.githubusercontent.com/The-Pocket/Tutorial-Codebase-Knowledge/refs/heads/main/assets/banner.png" width="800"
     />
   </a>
@@ -39,4 +39,3 @@ This is a tutorial project of [Pocket Flow](https://github.com/The-Pocket/Pocket
 - [Pydantic Core](./Pydantic Core/index.md) - Validate data at rocket speed with just Python type hints!
 - [Requests](./Requests/index.md) - Talk to the internet in Python with code so simple it feels like cheating!
 - [SmolaAgents](./SmolaAgents/index.md) - Build tiny AI agents that punch way above their weight class!
-

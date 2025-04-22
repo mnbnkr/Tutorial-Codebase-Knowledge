@@ -93,7 +93,7 @@ coverage/
 .eslintcache
 
 # Optional REPL history
-.node_repl_history 
+.node_repl_history
 
 # LLM cache
 llm_cache.json
@@ -102,3 +102,4 @@ llm_cache.json
 output/
 
 utils/.notes.txt
+utils/Codebase-Tutorial-Ptompt-AI.txt
